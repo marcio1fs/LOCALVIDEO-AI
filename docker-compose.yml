@@ -1,0 +1,41 @@
+# Infra de dados do Control Plane (PostgreSQL + Redis) — reservada p/ Fase 6.
+# A Fase 1 não exige banco: ledger/registro usam arquivos locais em ./data.
+# Suba com: docker compose up -d
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: localvideo-postgres
+    environment:
+      POSTGRES_DB: localvideo
+      POSTGRES_USER: localvideo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U localvideo -d localvideo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: localvideo-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:

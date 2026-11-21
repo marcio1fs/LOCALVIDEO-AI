@@ -23,6 +23,7 @@ from app.security.rate_limit import install_rate_limit
 from app.services.cost_manager import CostManager
 from app.services.gpu_manager import GpuManager
 from app.services.storage_registry import StorageRegistry
+from app.ui import router as ui_router
 from providers.vast import (
     MutationGate,
     VastBillingService,
@@ -146,6 +147,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         burst=settings.rate_limit_burst,
     )
 
+    app.include_router(ui_router)  # painel de status na raiz "/"
     app.include_router(api_router)
 
     # ------------------------------------------------------------------

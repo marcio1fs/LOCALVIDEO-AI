@@ -41,6 +41,17 @@ def test_health_open(client):
     assert response.json()["status"] == "ok"
 
 
+def test_root_landing_page(client):
+    """A raiz deve mostrar o painel de status (não 404)."""
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "LocalVideo AI" in response.text
+    # A página não pode conter segredos nem expor chamadas sem autenticação.
+    assert "dev-client-key" not in response.text
+    assert "/docs" in response.text
+
+
 def test_meta_config_has_no_secrets(client):
     response = client.get("/api/v1/meta/config")
     body = str(response.json())

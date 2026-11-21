@@ -10,10 +10,12 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import api_router
 from app.config import Settings, describe_safe, get_settings
@@ -147,8 +149,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         burst=settings.rate_limit_burst,
     )
 
-    app.include_router(ui_router)  # painel de status na raiz "/"
+    app.include_router(ui_router)  # painel web completo na raiz "/"
     app.include_router(api_router)
+
+    app.mount(
+        "/static",
+        StaticFiles(directory=Path(__file__).parent / "static"),
+        name="static",
+    )
 
     # ------------------------------------------------------------------
     # Tratamento de erros com envelope estável

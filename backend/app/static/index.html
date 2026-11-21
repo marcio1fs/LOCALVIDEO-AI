@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LocalVideo AI — Painel</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <h1>LocalVideo AI <span class="phase">painel web · antecipação da Fase 5</span></h1>
+    <p class="subtitle">GPU sob demanda (Vast.ai) · Control Plane Fase 1</p>
+  </div>
+  <div class="conn">
+    <input id="apikey" type="password" placeholder="Chave de API (X-API-Key)" autocomplete="off">
+    <button id="btnConnect">Conectar</button>
+    <span id="connState" class="pill neut">desconectado</span>
+  </div>
+</header>
+
+<div id="alerts" class="alerts"></div>
+
+<main class="grid">
+  <section class="card gpu">
+    <h2>GPU Cloud</h2>
+    <div class="gpustate-line">
+      <span id="gpustate" class="pill neut">—</span>
+      <span id="gpuSpinner" class="spinner hidden"></span>
+    </div>
+    <p id="gpumsg" class="muted">Conecte-se para ver o estado.</p>
+    <dl class="kv">
+      <div><dt>Provedor</dt><dd id="provider">vast.ai</dd></div>
+      <div><dt>Instância</dt><dd id="instance">—</dd></div>
+      <div><dt>GPU / VRAM</dt><dd id="gpumodel">—</dd></div>
+      <div><dt>Tempo de sessão</dt><dd id="elapsed">—</dd></div>
+      <div><dt>Custo da sessão (acúmulo)</dt><dd id="accrual">—</dd></div>
+      <div><dt>Fila de geração</dt><dd id="queue">—</dd></div>
+      <div><dt>Encerramento automático</dt><dd id="idle">—</dd></div>
+    </dl>
+    <div class="actions">
+      <button id="btnStart" class="primary" disabled>Iniciar sessão</button>
+      <button id="btnStop" class="danger" disabled>Encerrar sessão</button>
+      <button id="btnEstimate" disabled>Estimar custo</button>
+      <button id="btnOffers" disabled>Ver ofertas</button>
+    </div>
+    <details class="profile">
+      <summary>Perfil de hardware (editável — §4, não fixa RTX 4090)</summary>
+      <div class="profile-grid">
+        <label>GPUs permitidas (vírgula)<input id="pGpus" placeholder="RTX 4090, L40S…"></label>
+        <label>VRAM mín. (GB)<input id="pVram" type="number" min="1" step="1"></label>
+        <label>RAM mín. do host (GB)<input id="pRam" type="number" min="1" step="1"></label>
+        <label>Disco mín. (GB)<input id="pDisk" type="number" min="1" step="1"></label>
+        <label>Confiabilidade mín. (0–1)<input id="pRel" type="number" min="0" max="1" step="0.01"></label>
+        <label>Preço máx. (US$/h, opcional)<input id="pMaxDph" type="number" min="0" step="0.01"></label>
+        <label>Horas estimadas da sessão<input id="pHours" type="number" min="0.25" max="24" step="0.25"></label>
+        <button id="btnLoadProfile" class="ghost">Carregar perfil do servidor</button>
+      </div>
+    </details>
+  </section>
+
+  <section class="card">
+    <h2>Orçamento</h2>
+    <div class="budget-bar"><div id="budgetFill" class="budget-fill"></div></div>
+    <dl class="kv">
+      <div><dt>Limite mensal</dt><dd id="bLimit">—</dd></div>
+      <div><dt>Comprometido</dt><dd id="bCommitted">—</dd></div>
+      <div><dt>Cobranças externas</dt><dd id="bExternal">—</dd></div>
+      <div><dt>Saldo restante</dt><dd id="bRemaining">—</dd></div>
+      <div><dt>Estado</dt><dd id="bState">—</dd></div>
+    </dl>
+    <details>
+      <summary>Configurar limite (chave admin)</summary>
+      <div class="profile-grid">
+        <label>Limite mensal (R$)<input id="budgetInput" type="number" min="1" step="1" placeholder="100"></label>
+        <label>Taxa USD→BRL<input id="rateInput" type="number" min="0.1" step="0.01" placeholder="5.40"></label>
+        <button id="btnSaveBudget" class="primary">Salvar orçamento</button>
+        <span id="budgetMsg" class="msg"></span>
+      </div>
+    </details>
+  </section>
+
+  <section class="card">
+    <h2>Armazenamento persistente</h2>
+    <div id="storageBody" class="muted">—</div>
+  </section>
+
+  <section class="card">
+    <h2>Ofertas compatíveis (Vast.ai)</h2>
+    <div id="offersBody" class="muted">Clique em “Ver ofertas” para consultar o marketplace em tempo real (somente leitura).</div>
+  </section>
+
+  <section class="card wide">
+    <h2>Histórico de sessões e custos</h2>
+    <div class="two-col">
+      <div>
+        <h3>Transições de estado</h3>
+        <ul id="historyList" class="feed"></ul>
+      </div>
+      <div>
+        <h3>Lançamentos de custo</h3>
+        <ul id="ledgerList" class="feed"></ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="modal" class="modal hidden">
+  <div class="modal-card">
+    <h3 id="modalTitle"></h3>
+    <div id="modalBody"></div>
+    <div id="modalMsg" class="msg"></div>
+    <div class="modal-actions">
+      <button id="modalCancel" class="ghost">Cancelar</button>
+      <button id="modalOk" class="primary">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Documentação da API: <a href="/docs">/docs</a> · <a href="/openapi.json">openapi.json</a> ·
+  Fila e geração real chegam na Fase 3 · Encerramento automático na Fase 4 · App desktop Tauri na Fase 5.<br>
+  A chave digitada fica apenas em memória neste navegador e é enviada só ao Control Plane (header X-API-Key).
+  Sem <code>LV_VAST_API_KEY</code> no servidor, ofertas respondem 503 — comportamento esperado da Fase 1.
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

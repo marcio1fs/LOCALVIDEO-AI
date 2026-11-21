@@ -77,10 +77,12 @@ def filter_offers(
     if survivors:
         prices = [o.dph_total or 0.0 for o in survivors]
         min_price, max_price = min(prices), max(prices)
-        result.best = max(
+        result.ranked = sorted(
             survivors,
             key=lambda o: _score(o, min_price, max_price, requirements),
+            reverse=True,
         )
+        result.best = result.ranked[0]
     return result
 
 

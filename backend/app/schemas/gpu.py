@@ -98,6 +98,26 @@ class StorageStatusResponse(BaseModel):
     note: str
 
 
+class BudgetUpdateRequest(BaseModel):
+    monthly_budget_brl: float | None = Field(
+        default=None,
+        gt=0,
+        le=100_000,
+        description="Novo limite mensal em reais. Omitido = sem alteração.",
+    )
+    usd_to_brl_rate: float | None = Field(
+        default=None,
+        gt=0.01,
+        le=100,
+        description="Nova taxa USD→BRL para estimativas. Omitido = sem alteração.",
+    )
+
+
+class BudgetResponse(BaseModel):
+    budget: dict[str, Any]
+    message: str = "Orçamento atualizado e persistido."
+
+
 class ErrorResponse(BaseModel):
     error: dict[str, Any] = Field(
         description='{"code": str, "message": str, ...}'

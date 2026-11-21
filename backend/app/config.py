@@ -159,8 +159,8 @@ class Settings(BaseSettings):
     # ------------------------------------------------------------------
     # Segurança HTTP (§10)
     # ------------------------------------------------------------------
-    rate_limit_requests_per_minute: int = 60
-    rate_limit_burst: int = 20
+    rate_limit_requests_per_minute: int = 120
+    rate_limit_burst: int = 30
     max_request_body_bytes: int = 10 * 1024 * 1024  # 10 MB
     cors_origins: list[str] = Field(
         default_factory=lambda: ["http://localhost:1420", "http://localhost:5173"],

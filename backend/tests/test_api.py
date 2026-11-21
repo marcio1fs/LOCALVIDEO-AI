@@ -41,15 +41,77 @@ def test_health_open(client):
     assert response.json()["status"] == "ok"
 
 
-def test_root_landing_page(client):
-    """A raiz deve mostrar o painel de status (não 404)."""
+def test_root_serves_dashboard(client):
+    """A raiz deve mostrar o painel web completo (não 404)."""
     response = client.get("/")
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
     assert "LocalVideo AI" in response.text
+    assert "/static/app.js" in response.text
     # A página não pode conter segredos nem expor chamadas sem autenticação.
     assert "dev-client-key" not in response.text
     assert "/docs" in response.text
+
+
+def test_static_assets_served(client):
+    assert client.get("/static/app.js").status_code == 200
+    assert client.get("/static/style.css").status_code == 200
+    assert "javascript" in client.get("/static/app.js").headers["content-type"]
+
+
+# ---------------------------------------------------------------------------
+# Orçamento configurável no painel (§11)
+# ---------------------------------------------------------------------------
+
+
+def test_budget_update_requires_admin(client):
+    response = client.patch(
+        "/api/v1/gpu/budget",
+        json={"monthly_budget_brl": 250},
+        headers={"X-API-Key": "dev-client-key"},
+    )
+    assert response.status_code == 403
+
+
+def test_budget_update_requires_auth(client):
+    response = client.patch("/api/v1/gpu/budget", json={"monthly_budget_brl": 250})
+    assert response.status_code == 401
+
+
+def test_budget_update_rejects_invalid(client):
+    response = client.patch(
+        "/api/v1/gpu/budget",
+        json={"monthly_budget_brl": -5},
+        headers={"X-API-Key": "dev-admin-key"},
+    )
+    assert response.status_code == 422
+
+
+def test_budget_update_and_persistence(tmp_path):
+    settings = make_settings(tmp_path, vast_api_key="test-vast-key")
+    app = create_app(settings)
+    with TestClient(app) as c:
+        r = c.patch(
+            "/api/v1/gpu/budget",
+            json={"monthly_budget_brl": 250, "usd_to_brl_rate": 5.1},
+            headers={"X-API-Key": "dev-admin-key"},
+        )
+        assert r.status_code == 200
+        body = r.json()
+        assert body["budget"]["budget_brl"] == 250.0
+
+        # Status reflete o novo limite imediatamente.
+        status_body = c.get(
+            "/api/v1/gpu/status", headers={"X-API-Key": "dev-client-key"}
+        ).json()
+        assert status_body["budget"]["budget_brl"] == 250.0
+
+    # Persistido: nova instância do Cost Manager carrega o valor salvo.
+    from app.services.cost_manager import CostManager
+
+    cm = CostManager(data_dir=str(tmp_path / "data"), monthly_budget_brl=100.0)
+    assert cm.monthly_budget_brl == 250.0
+    assert cm.usd_to_brl_rate == 5.1
 
 
 def test_meta_config_has_no_secrets(client):
@@ -169,6 +231,8 @@ def test_offers_with_mocked_vast(app, client):
     assert body["feasible"] is True
     assert body["offer"]["gpu_name"] == "RTX 4090"
     assert body["cost_estimate"]["total_brl"] > 0
+    assert len(body["top_offers"]) == 1
+    assert body["top_offers"][0]["offer_id"] == 101
 
 
 def test_cost_estimate_with_mocked_vast(app, client):

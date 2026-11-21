@@ -315,6 +315,7 @@ class GpuManager:
                 "feasible": True,
                 "offer": describe(best),
                 "cost_estimate": estimate,
+                "top_offers": [describe(o) for o in selection.ranked[:8]],
             }
         )
         plan["_offer_obj"] = best  # objeto interno (removido antes de expor via API)

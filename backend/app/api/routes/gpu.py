@@ -12,6 +12,8 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.schemas.gpu import (
+    BudgetResponse,
+    BudgetUpdateRequest,
     GpuCostEstimateResponse,
     GpuOffersQuery,
     GpuStartRequest,
@@ -215,6 +217,34 @@ async def gpu_usage(
         ledger=ledger,
         history=history,
     )
+
+
+@router.patch("/budget", response_model=BudgetResponse)
+async def update_budget(
+    payload: BudgetUpdateRequest,
+    request: Request,
+    context: AuthContext = Depends(require_admin_auth),
+) -> BudgetResponse:
+    """Limite mensal configurável no painel (§11). Exige chave admin.
+
+    Persistido em `data/cost_settings.json` (PostgreSQL na Fase 6) e auditado.
+    """
+    state = _services(request)
+    state.audit_logger.record(
+        actor=context.label,
+        action="gpu.budget_update",
+        result="accepted",
+        details={
+            "monthly_budget_brl": payload.monthly_budget_brl,
+            "usd_to_brl_rate": payload.usd_to_brl_rate,
+        },
+    )
+    budget = await state.cost_manager.update_budget(
+        monthly_budget_brl=payload.monthly_budget_brl,
+        usd_to_brl_rate=payload.usd_to_brl_rate,
+    )
+    state.audit_logger.record(actor=context.label, action="gpu.budget_update", result="ok")
+    return BudgetResponse(budget=budget.to_dict())
 
 
 @router.get("/hardware-profile")

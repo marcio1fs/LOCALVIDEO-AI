@@ -51,6 +51,12 @@ testes de integração, com clareza sobre o que é simulado.
 - Chave LocalVideo AI no Windows Credential Manager.
 - WebSocket para eventos; avisos de inicialização/prontidão/falhas.
 
+> **Antecipado (Fase 1)**: os painéis do §11 já existem como **aplicação web
+> servida pelo Control Plane** (`/` — ver `docs/PAINEL-WEB.md`): GPU Cloud,
+> orçamento configurável (`PATCH /api/v1/gpu/budget`), armazenamento, ofertas,
+> histórico e alertas. A Fase 5 adapta isso ao Tauri (Credential Manager,
+> empacotamento Windows, WebSocket).
+
 ## Fase 6 — Persistência e hardening
 
 - PostgreSQL (jobs, sessões, auditoria, volumes) + Redis (fila/rate limit).

@@ -87,6 +87,12 @@ make test
 make lint
 ```
 
+Abrindo `http://localhost:8000/` você acessa o **painel web completo** (antecipação
+da Fase 5): estado da GPU, iniciar/encerrar sessão com confirmação de custo,
+orçamento configurável, armazenamento, ofertas em tempo real e histórico —
+detalhes em [`docs/PAINEL-WEB.md`](docs/PAINEL-WEB.md). Conecte no topo com a
+chave de API; operações de cobrança exigem a chave admin.
+
 Sem `LV_VAST_API_KEY`, o sistema responde claramente `503 vast_key_missing`
 nas rotas que dependem do provedor — nada é simulado como se fosse real.
 
@@ -103,5 +109,6 @@ juntos: (1) chave Vast.ai configurada, (2) flag explícita `true`,
 - [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) — componentes, estados, pipeline
 - [`docs/API-VAST-MAPEAMENTO.md`](docs/API-VAST-MAPEAMENTO.md) — endpoints REST da Vast.ai usados, com fontes oficiais
 - [`docs/SEGURANCA.md`](docs/SEGURANCA.md) — modelo de ameaças e medidas (§10)
+- [`docs/PAINEL-WEB.md`](docs/PAINEL-WEB.md) — painel web completo (antecipação da Fase 5)
 - [`docs/FASES.md`](docs/FASES.md) — plano detalhado por fase
 - [`docs/RELATORIO-FASE-1.md`](docs/RELATORIO-FASE-1.md) — arquivos, testes, resultados, riscos e custos

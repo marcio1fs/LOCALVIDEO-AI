@@ -73,6 +73,18 @@ async def test_plan_provision_returns_best_offer(settings):
     assert plan["cost_estimate"]["is_estimate"] is True
 
 
+async def test_plan_includes_top_offers_ranked(settings):
+    """Painel web: lista de ofertas sobreviventes ordenada por score."""
+    offers = FakeOffersService(
+        [make_offer(id=1, dph_total=0.50), make_offer(id=2, dph_total=0.35)]
+    )
+    manager = _manager(settings, offers=offers)
+    plan = await manager.plan_provision()
+    assert len(plan["top_offers"]) == 2
+    assert plan["top_offers"][0]["offer_id"] == 2  # mais barata primeiro
+    assert plan["top_offers"][1]["offer_id"] == 1
+
+
 async def test_plan_without_compatible_offers_is_not_feasible(settings):
     manager = _manager(settings, offers=FakeOffersService([make_offer(id=1, gpu_ram=8192)]))
     plan = await manager.plan_provision()

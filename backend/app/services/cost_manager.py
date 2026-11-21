@@ -28,6 +28,7 @@ from typing import Any
 logger = logging.getLogger("localvideo.cost")
 
 LEDGER_FILE = "cost_ledger.json"
+SETTINGS_FILE = "cost_settings.json"
 
 
 class BudgetState(StrEnum):
@@ -114,6 +115,7 @@ class CostManager:
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self._ledger_path = self.data_dir / LEDGER_FILE
+        self._settings_path = self.data_dir / SETTINGS_FILE
         self.monthly_budget_brl = monthly_budget_brl
         self.usd_to_brl_rate = usd_to_brl_rate
         self.alert_threshold = alert_threshold
@@ -126,6 +128,7 @@ class CostManager:
         self._spent_brl: float = 0.0
         self._external_brl: float = 0.0
         self._load()
+        self._load_settings()
 
     # ------------------------------------------------------------------
     # Conversões
@@ -314,6 +317,59 @@ class CostManager:
                         note="excedente sobre reservas (cobrança acima da estimativa)",
                     )
                 )
+
+    # ------------------------------------------------------------------
+    # Configuração de orçamento (§11: limite mensal configurável no painel)
+    # ------------------------------------------------------------------
+    async def update_budget(
+        self,
+        monthly_budget_brl: float | None = None,
+        usd_to_brl_rate: float | None = None,
+    ) -> BudgetStatus:
+        """Atualiza limite mensal e/ou taxa USD→BRL e persiste em
+        `cost_settings.json` (sobrevive a reinícios até migrar p/ PostgreSQL).
+        """
+        async with self._lock:
+            if monthly_budget_brl is not None:
+                if monthly_budget_brl <= 0:
+                    raise ValueError("Orçamento mensal deve ser positivo.")
+                self.monthly_budget_brl = float(monthly_budget_brl)
+            if usd_to_brl_rate is not None:
+                if usd_to_brl_rate <= 0:
+                    raise ValueError("Taxa USD→BRL deve ser positiva.")
+                self.usd_to_brl_rate = float(usd_to_brl_rate)
+            self._save_settings()
+            return self._compute_status()
+
+    def _save_settings(self) -> None:
+        try:
+            self._settings_path.write_text(
+                json.dumps(
+                    {
+                        "monthly_budget_brl": self.monthly_budget_brl,
+                        "usd_to_brl_rate": self.usd_to_brl_rate,
+                        "updated_at": time.time(),
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+        except OSError as exc:  # pragma: no cover
+            logger.error("Falha ao salvar configuração de custos: %s", exc)
+
+    def _load_settings(self) -> None:
+        """Preferência do painel sobrepõe o default do ambiente, se existir."""
+        if not self._settings_path.exists():
+            return
+        try:
+            data = json.loads(self._settings_path.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                if data.get("monthly_budget_brl"):
+                    self.monthly_budget_brl = float(data["monthly_budget_brl"])
+                if data.get("usd_to_brl_rate"):
+                    self.usd_to_brl_rate = float(data["usd_to_brl_rate"])
+        except (OSError, ValueError) as exc:
+            logger.error("Falha ao carregar configuração de custos: %s", exc)
 
     # ------------------------------------------------------------------
     # Status

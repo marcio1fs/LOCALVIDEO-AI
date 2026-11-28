@@ -25,7 +25,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "https://seu-app.vercel.app/api/metricas",
+        "url": "https://crm-nine-eta-26.vercel.app/api/metricas",
         "options": {}
       },
       "id": "c4b41285-7de5-4757-a8f5-fe2f174d5cf7",

@@ -151,9 +151,11 @@ async function routeApi(pathname, method, req, res, body, qs) {
   if (pathname === '/api/atividades' && method === 'GET') return send(res, 200, store._state().atividades);
   if (pathname === '/api/metricas' && method === 'GET') return send(res, 200, store.metricas());
   if (pathname === '/api/config' && method === 'GET') {
+    const crmUrl = (process.env.CRM_URL || '').replace(/\/$/, '');
     return send(res, 200, {
       n8nBase: N8N_BASE_URL || null,
       n8nWebhookBase: N8N_BASE_URL ? `${N8N_BASE_URL}/webhook` : null,
+      crmUrl: crmUrl || null,
       smtp: !!process.env.SMTP_HOST,
     });
   }

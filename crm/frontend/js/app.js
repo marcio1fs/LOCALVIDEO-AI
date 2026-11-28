@@ -582,7 +582,9 @@ views.configuracoes = async () => {
   const base = Api.getBase() || 'http://localhost:4000';
   const m = state.metas || (await Api.getMetas());
   const cfg = await Api.getConfig().catch(() => ({ n8nWebhookBase: null, smtp: false }));
-  const whBase = cfg.n8nWebhookBase || (Api.getBase() || 'http://localhost:4000') + '/webhooks';
+  // Base onde a n8n deve postar eventos no CRM: URL pública (Vercel) se definida,
+  // senão a origem atual do frontend.
+  const whBase = (cfg.crmUrl || base) + '/api/webhook';
   const n8nStatus = cfg.n8nWebhookBase
     ? '<span class="badge b-ativo">n8n conectado</span>'
     : '<span class="badge b-potencial">n8n local (emulação)</span>';

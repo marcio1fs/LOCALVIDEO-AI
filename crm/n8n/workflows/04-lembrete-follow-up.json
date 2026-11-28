@@ -35,7 +35,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://seu-app.vercel.app/api/tarefas",
+        "url": "https://crm-nine-eta-26.vercel.app/api/tarefas",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"titulo\": $json.titulo,\n  \"clienteId\": $json.clienteId,\n  \"tipo\": \"follow-up\",\n  \"prioridade\": \"alta\",\n  \"status\": \"aberto\"\n}",

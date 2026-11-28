@@ -1,0 +1,109 @@
+{
+  "name": "Novo Atendimento",
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "tags": [],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "novo-atendimento",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "d776d555-3f2a-4b02-a6e9-a74f10250314",
+      "name": "Webhook · Novo Atendimento",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [0, 300],
+      "webhookId": "c4b41285-7de5-4757-a8f5-fe2f174d5cf7"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Roteamento de atendimento: define o atendente e calcula a meta SLA.\nconst payload = $input.first().json.body || $input.first().json;\n\nconst canais = ['chat', 'email', 'telefone', 'presencial'];\nconst canal = canais.includes(payload.canal) ? payload.canal : 'chat';\n\n// Fila simples de atendentes (adaptar conforme a equipe real)\nconst fila = ['Ana Borges', 'Bruno Costa', 'Carla Lima'];\nconst atendente = fila[Math.floor(Math.random() * fila.length)];\n\n// SLA alvo (minutos) por canal\nconst slaPorCanal = { chat: 15, email: 60, telefone: 30, presencial: 120 };\nconst slaMinutos = slaPorCanal[canal];\n\nconst slaDue = new Date(Date.now() + slaMinutos * 60000).toISOString();\n\nreturn [{\n  json: {\n    clienteId: payload.clienteId || null,\n    clienteNome: payload.clienteNome || 'Cliente',\n    assunto: payload.assunto || 'Novo atendimento',\n    canal,\n    atendente,\n    slaMinutos,\n    slaDue,\n    rotado: true\n  }\n}];"
+      },
+      "id": "2f430d10-4ab3-4402-8f9d-ab73624c7f3c",
+      "name": "Rotear Atendimento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [230, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "947889af-4d00-4bcc-8fb4-54643baea91e",
+              "leftValue": "={{ $json.canal }}",
+              "rightValue": "email",
+              "operator": { "type": "string", "operation": "notEquals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "ef293d12-c7e2-46c4-871a-0b2d0f29a106",
+      "name": "Se não for por e-mail",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/PREENCHAR_SEU_WEBHOOK_SLACK",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": \"🟣 Novo atendimento\\n*Cliente:* {{ $json.clienteNome }}\\n*Assunto:* {{ $json.assunto }}\\n*Canal:* {{ $json.canal }}\\n*Atendente:* {{ $json.atendente }}\\n*SLA:* {{ $json.slaMinutos }} min\"\n}",
+        "options": {}
+      },
+      "id": "bf2266e5-e1ee-4a8a-8cc4-d68f490dc040",
+      "name": "Notificar Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [680, 220],
+      "credentials": {
+        "httpRequest": { "id": "REPLACE_WITH_HTTP_CREDENTIAL", "name": "Credentials not set" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"ok\": true,\n  \"workflow\": \"novo-atendimento\",\n  \"atendimento\": {{\n    \"clienteNome\": $json.clienteNome,\n    \"assunto\": $json.assunto,\n    \"canal\": $json.canal,\n    \"atendente\": $json.atendente,\n    \"slaDue\": $json.slaDue,\n    \"rotado\": $json.rotado\n  }}\n}",
+        "options": { "responseCode": 200 }
+      },
+      "id": "9205a31c-8b0d-43c5-a9ee-af8cfd33988f",
+      "name": "Responder Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [680, 420]
+    }
+  ],
+  "connections": {
+    "Webhook · Novo Atendimento": {
+      "main": [
+        [{ "node": "Rotear Atendimento", "type": "main", "index": 0 }]
+      ]
+    },
+    "Rotear Atendimento": {
+      "main": [
+        [
+          { "node": "Se não for por e-mail", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Se não for por e-mail": {
+      "main": [
+        [{ "node": "Notificar Slack", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Notificar Slack": {
+      "main": [
+        [{ "node": "Responder Webhook", "type": "main", "index": 0 }]
+      ]
+    }
+  }
+}

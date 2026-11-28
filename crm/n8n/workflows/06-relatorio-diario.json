@@ -1,0 +1,85 @@
+{
+  "name": "Relatório Diário",
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "tags": [],
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "d776d555-3f2a-4b02-a6e9-a74f10250314",
+      "name": "Agendado · Diariamente 08h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://seu-app.vercel.app/api/metricas",
+        "options": {}
+      },
+      "id": "c4b41285-7de5-4757-a8f5-fe2f174d5cf7",
+      "name": "Buscar Métricas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [220, 300],
+      "credentials": {
+        "httpRequest": { "id": "REPLACE_WITH_HTTP_CREDENTIAL", "name": "Credentials not set" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formata o resumo diário do atendimento.\nconst m = $input.first().json;\n\nconst porCanal = Object.entries(m.porCanal || {})\n  .map(([k, v]) => `• ${k}: ${v}`)\n  .join('\\n');\n\nconst texto = [\n  `📊 Relatório diário de atendimento`,\n  `Clientes: ${m.clientes} (${m.clientesAtivos} ativos)`,\n  `Atendimentos abertos: ${m.atendimentosAbertos}`,\n  `Resolvidos: ${m.atendimentosResolvidos}`,\n  `SLA em atraso: ${m.emAtraso}`,\n  `Avaliação média: ${m.notaMedia || '—'}`,\n  `\\nPor canal:\\n${porCanal}`\n].join('\\n');\n\nreturn [{ json: { texto } }];"
+      },
+      "id": "2f430d10-4ab3-4402-8f9d-ab73624c7f3c",
+      "name": "Formatar Relatório",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "crm@empresa.com",
+        "toEmail": "equipe@empresa.com",
+        "subject": "=Relatório diário de atendimento",
+        "text": "={{ $json.texto }}",
+        "options": {}
+      },
+      "id": "ef293d12-c7e2-46c4-871a-0b2d0f29a106",
+      "name": "Enviar E-mail",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [660, 300],
+      "credentials": {
+        "smtp": { "id": "REPLACE_WITH_SMTP_CREDENTIAL", "name": "SMTP" }
+      }
+    }
+  ],
+  "connections": {
+    "Agendado · Diariamente 08h": {
+      "main": [
+        [{ "node": "Buscar Métricas", "type": "main", "index": 0 }]
+      ]
+    },
+    "Buscar Métricas": {
+      "main": [
+        [{ "node": "Formatar Relatório", "type": "main", "index": 0 }]
+      ]
+    },
+    "Formatar Relatório": {
+      "main": [
+        [{ "node": "Enviar E-mail", "type": "main", "index": 0 }]
+      ]
+    }
+  }
+}

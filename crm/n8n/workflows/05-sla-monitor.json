@@ -1,0 +1,86 @@
+{
+  "name": "Monitoramento de SLA",
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "tags": [],
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/15 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "e1610272-0005-434b-9440-d291f6d0d354",
+      "name": "Agendado · A cada 15 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://seu-app.vercel.app/api/atendimentos?status=aberto",
+        "options": {}
+      },
+      "id": "5d975610-1f93-4a30-8997-430f798059e7",
+      "name": "Buscar Atendimentos Abertos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [220, 300],
+      "credentials": {
+        "httpRequest": { "id": "REPLACE_WITH_HTTP_CREDENTIAL", "name": "Credentials not set" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Seleciona os atendimentos cujo SLA já expirou.\nconst items = $input.all();\nconst agora = Date.now();\n\nreturn items\n  .filter((item) => {\n    const a = item.json;\n    return a.slaDue && new Date(a.slaDue).getTime() < agora;\n  })\n  .map((item) => ({\n    json: {\n      atendimentoId: item.json.id,\n      clienteNome: item.json.clienteNome,\n      assunto: item.json.assunto,\n      atendente: item.json.atendente,\n      slaDue: item.json.slaDue,\n      atrasoMinutos: Math.round((agora - new Date(item.json.slaDue).getTime()) / 60000)\n    }\n  }));"
+      },
+      "id": "28c48a40-7c64-4a96-8f78-b036d99f1d27",
+      "name": "Detectar Em Atraso",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/PREENCHAR_SEU_WEBHOOK_SLACK",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": \"⏱ SLA em atraso\\n*Cliente:* {{ $json.clienteNome }}\\n*Assunto:* {{ $json.assunto }}\\n*Atendente:* {{ $json.atendente }}\\n*Atraso:* {{ $json.atrasoMinutos }} min\"\n}",
+        "options": {}
+      },
+      "id": "2f430d10-4ab3-4402-8f9d-ab73624c7f3c",
+      "name": "Alerta de SLA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [660, 300],
+      "credentials": {
+        "httpRequest": { "id": "REPLACE_WITH_HTTP_CREDENTIAL", "name": "Credentials not set" }
+      }
+    }
+  ],
+  "connections": {
+    "Agendado · A cada 15 min": {
+      "main": [
+        [{ "node": "Buscar Atendimentos Abertos", "type": "main", "index": 0 }]
+      ]
+    },
+    "Buscar Atendimentos Abertos": {
+      "main": [
+        [{ "node": "Detectar Em Atraso", "type": "main", "index": 0 }]
+      ]
+    },
+    "Detectar Em Atraso": {
+      "main": [
+        [{ "node": "Alerta de SLA", "type": "main", "index": 0 }]
+      ]
+    }
+  }
+}

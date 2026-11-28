@@ -1,0 +1,87 @@
+{
+  "name": "Sincronização Telegram",
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "tags": [],
+  "nodes": [
+    {
+      "parameters": {
+        "polling": false,
+        "chatId": ""
+      },
+      "id": "19521f66-ef31-41d2-901d-a8ba1d75f794",
+      "name": "Gatilho · Telegram",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 300],
+      "credentials": {
+        "telegramApi": { "id": "REPLACE_WITH_TELEGRAM_CREDENTIAL", "name": "Telegram Bot" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Processa a mensagem do Telegram e prepara o atendimento.\nconst msg = $input.first().json;\nconst texto = (msg.text || msg.message_text || '').trim();\nconst chatId = msg.chat_id || msg.chatId;\nconst deUsuario = msg.from && (msg.from.first_name || msg.from.username) || 'Cliente Telegram';\n\nreturn [{\n  json: {\n    clienteNome: deUsuario,\n    texto,\n    chatId,\n    assunto: texto.slice(0, 40) || 'Telegram'\n  }\n}];"
+      },
+      "id": "589c090a-ec8c-48df-a6e2-c5894d4c4e56",
+      "name": "Processar Mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [230, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://seu-app.vercel.app/api/atendimentos",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"clienteNome\": $json.clienteNome,\n  \"assunto\": $json.assunto,\n  \"canal\": \"chat\",\n  \"atendente\": \"Telegram\"\n}",
+        "options": {}
+      },
+      "id": "2b9ed414-4544-4568-ae0b-0e1e54983f9e",
+      "name": "Abrir Atendimento no CRM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 200],
+      "credentials": {
+        "httpRequest": { "id": "REPLACE_WITH_HTTP_CREDENTIAL", "name": "Credentials not set" }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "chatId": "={{ $json.chatId }}",
+        "text": "=Recebido pelo CRM Atendimento. Sua mensagem: \"{{ $json.texto }}\". Um atendente retornará em breve.",
+        "options": {}
+      },
+      "id": "42c3f80a-6dc1-427d-ad7f-8f23efd726fc",
+      "name": "Responder no Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [460, 420],
+      "credentials": {
+        "telegramApi": { "id": "REPLACE_WITH_TELEGRAM_CREDENTIAL", "name": "Telegram Bot" }
+      }
+    }
+  ],
+  "connections": {
+    "Gatilho · Telegram": {
+      "main": [
+        [{ "node": "Processar Mensagem", "type": "main", "index": 0 }]
+      ]
+    },
+    "Processar Mensagem": {
+      "main": [
+        [
+          { "node": "Abrir Atendimento no CRM", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Abrir Atendimento no CRM": {
+      "main": [
+        [{ "node": "Responder no Telegram", "type": "main", "index": 0 }]
+      ]
+    }
+  }
+}

@@ -1,0 +1,16 @@
+# dados locais do CRM (persistência em arquivo)
+server/data.json
+
+# dependências
+node_modules/
+
+# logs / caches
+*.log
+.DS_Store
+
+# variáveis de ambiente
+.env
+
+# dados do n8n
+n8n_data/
+pg_data/

@@ -1,0 +1,91 @@
+{
+  "name": "Lembrete Follow-up",
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "tags": [],
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "42c3f80a-6dc1-427d-ad7f-8f23efd726fc",
+      "name": "Agendado · Todo dia 09h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Busca os atendimentos em aberto sem resposta há mais de 1 dia.\n// Em produção, substitua por uma chamada à API do CRM (HTTP Request).\nconst atendimentos = [\n  // dados exemplo vindos de um HTTP Request node\n];\n\n// Neste fluxo, buscamos via API local/n8n:\nconst hoje = new Date();\nconst semResposta = atendimentos.filter((a) => {\n  if (!a.atualizadoEm) return false;\n  const d = new Date(a.atualizadoEm);\n  return (hoje - d) > 24 * 3600 * 1000 && (a.status === 'aberto' || a.status === 'aguardando');\n});\n\nreturn semResposta.map((a) => ({\n  json: {\n    clienteId: a.clienteId,\n    clienteNome: a.clienteNome,\n    assunto: a.assunto,\n    titulo: `Follow-up: ${a.clienteNome} — ${a.assunto}`\n  }\n}));"
+      },
+      "id": "0b4db511-42ad-40fa-b65c-c7526171184e",
+      "name": "Identificar Sem Resposta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [230, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://seu-app.vercel.app/api/tarefas",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"titulo\": $json.titulo,\n  \"clienteId\": $json.clienteId,\n  \"tipo\": \"follow-up\",\n  \"prioridade\": \"alta\",\n  \"status\": \"aberto\"\n}",
+        "options": {}
+      },
+      "id": "9bdb7d27-7943-4dc2-ac20-79c20df18efa",
+      "name": "Criar Tarefa no CRM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 220],
+      "credentials": {
+        "httpRequest": { "id": "REPLACE_WITH_HTTP_CREDENTIAL", "name": "Credentials not set" }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/PREENCHAR_SEU_WEBHOOK_SLACK",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": \"📭 Lembrete de follow-up\\n*Cliente:* {{ $json.clienteNome }}\\n*Assunto:* {{ $json.assunto }}\"\n}",
+        "options": {}
+      },
+      "id": "5a4e7f60-f2a0-4bfc-afd9-0158d41b9db5",
+      "name": "Notificar Atendente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 420],
+      "credentials": {
+        "httpRequest": { "id": "REPLACE_WITH_HTTP_CREDENTIAL", "name": "Credentials not set" }
+      }
+    }
+  ],
+  "connections": {
+    "Agendado · Todo dia 09h": {
+      "main": [
+        [{ "node": "Identificar Sem Resposta", "type": "main", "index": 0 }]
+      ]
+    },
+    "Identificar Sem Resposta": {
+      "main": [
+        [
+          { "node": "Criar Tarefa no CRM", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Criar Tarefa no CRM": {
+      "main": [
+        [{ "node": "Notificar Atendente", "type": "main", "index": 0 }]
+      ]
+    }
+  }
+}

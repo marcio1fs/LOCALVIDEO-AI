@@ -1,0 +1,17 @@
+{
+  "name": "crm-atendimento",
+  "version": "1.0.0",
+  "description": "CRM de atendimento ao cliente com n8n — frontend moderno e backend local",
+  "private": true,
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node server/server.js",
+    "seed": "node -e \"require('./server/store').reset(); require('./server/seed').seed()\""
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "nodemailer": "^10.6.1"
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "name": "Sincronização WhatsApp",
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "tags": [],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-sync",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "5b9c089f-fdff-4b58-8aaa-77462054ad15",
+      "name": "Webhook · WhatsApp (Twilio)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [0, 300],
+      "webhookId": "bf69dd10-cf28-4340-b578-44da1758bb1b"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse da mensagem do WhatsApp (callback do Twilio).\nconst body = $input.first().json.body || $input.first().json;\n\nconst from = (body.From || body.from || '').replace(/[^0-9]/g, '');\nconst texto = (body.Body || body.texto || '').trim();\nconst numero = (body.To || body.to || '').replace(/[^0-9]/g, '');\n\n// Em produção, buscar o cliente por telefone e o atendimento aberto.\nreturn [{\n  json: {\n    telefone: from,\n    texto,\n    numeroDestino: numero,\n    assunto: texto.slice(0, 40) || 'WhatsApp'\n  }\n}];"
+      },
+      "id": "eda5f3c3-4633-412a-8250-b59ffcda423a",
+      "name": "Processar Mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [230, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://seu-app.vercel.app/api/atendimentos",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"clienteNome\": \"WhatsApp \" + $json.telefone,\n  \"assunto\": $json.assunto,\n  \"canal\": \"chat\",\n  \"atendente\": \"Automatico\"\n}",
+        "options": {}
+      },
+      "id": "e2c4d761-ae16-4df3-b4cc-34e675ac98df",
+      "name": "Abrir Atendimento no CRM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 200],
+      "credentials": {
+        "httpRequest": { "id": "REPLACE_WITH_HTTP_CREDENTIAL", "name": "Credentials not set" }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "create",
+        "from": "whatsapp:+5573999990000",
+        "to": "whatsapp:+{{ $json.telefone }}",
+        "message": "=Recebido pelo CRM. Sua mensagem: \"{{ $json.texto }}\". Aguardamos o retorno.",
+        "options": {}
+      },
+      "id": "7c1afda9-e074-45a2-b8bb-6d743e87f021",
+      "name": "Responder no WhatsApp",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1.1,
+      "position": [460, 420],
+      "credentials": {
+        "twilioAccountSID": { "id": "REPLACE_WITH_TWILIO_CREDENTIAL", "name": "Twilio" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"ok\": true,\n  \"workflow\": \"whatsapp-sync\",\n  \"telefone\": $json.telefone,\n  \"assunto\": $json.assunto\n}",
+        "options": { "responseCode": 200 }
+      },
+      "id": "b3f617a5-49ea-41a9-90dd-d2cf77967a63",
+      "name": "Responder Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [700, 300]
+    }
+  ],
+  "connections": {
+    "Webhook · WhatsApp (Twilio)": {
+      "main": [
+        [{ "node": "Processar Mensagem", "type": "main", "index": 0 }]
+      ]
+    },
+    "Processar Mensagem": {
+      "main": [
+        [
+          { "node": "Abrir Atendimento no CRM", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Abrir Atendimento no CRM": {
+      "main": [
+        [{ "node": "Responder no WhatsApp", "type": "main", "index": 0 }]
+      ]
+    },
+    "Responder no WhatsApp": {
+      "main": [
+        [{ "node": "Responder Webhook", "type": "main", "index": 0 }]
+      ]
+    }
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "name": "Registrar Interação",
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "tags": [],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "interacao",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "32db5c33-82f8-463d-b779-d003100fb4a3",
+      "name": "Webhook · Interação",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [0, 300],
+      "webhookId": "b8b1d1b0-2620-4c71-9797-e9fdbfdc49ec"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Registrar a mensagem no atendimento e calcular se há risco de SLA.\nconst body = $input.first().json.body || $input.first().json;\n\nconst atendimento = $('Rotear Interação').first().json;\n\nconst agora = Date.now();\nconst atrasado = atendimento.slaDue && new Date(atendimento.slaDue).getTime() < agora;\n\n// Se o cliente escreveu após o SLA, sinaliza resolução priorizada\nconst prioridade = atrasado ? 'urgente' : 'normal';\n\nreturn [{\n  json: {\n    atendimentoId: body.atendimentoId,\n    autor: body.autor || 'cliente',\n    texto: body.texto,\n    prioridade,\n    atrasado\n  }\n}];"
+      },
+      "id": "4bb4c6c3-fef4-40d7-8ca3-7ae586c45e5b",
+      "name": "Rotear Interação",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "753de6f5-db4c-4866-8a3a-7a9285d16c41",
+              "leftValue": "={{ $json.atrasado }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "021f0b72-11cc-4cab-b19c-0f19542d9afa",
+      "name": "Se SLA em atraso",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/PREENCHAR_SEU_WEBHOOK_SLACK",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": \"⚠️ SLA em atraso no atendimento {{ $json.atendimentoId }}\\nMensagem de: {{ $json.autor }}\"\n}",
+        "options": {}
+      },
+      "id": "0075786b-5065-4e6b-bd33-60729878cc68",
+      "name": "Alerta SLA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [660, 220],
+      "credentials": {
+        "httpRequest": { "id": "REPLACE_WITH_HTTP_CREDENTIAL", "name": "Credentials not set" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"ok\": true,\n  \"workflow\": \"registrar-interacao\",\n  \"atendimentoId\": $json.atendimentoId,\n  \"prioridade\": $json.prioridade,\n  \"atrasado\": $json.atrasado\n}",
+        "options": { "responseCode": 200 }
+      },
+      "id": "2734c9cd-4777-403c-b329-80b9e7c3d22c",
+      "name": "Responder Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [660, 420]
+    }
+  ],
+  "connections": {
+    "Webhook · Interação": {
+      "main": [
+        [{ "node": "Rotear Interação", "type": "main", "index": 0 }]
+      ]
+    },
+    "Rotear Interação": {
+      "main": [
+        [
+          { "node": "Se SLA em atraso", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Se SLA em atraso": {
+      "main": [
+        [{ "node": "Alerta SLA", "type": "main", "index": 0 }],
+        [{ "node": "Responder Webhook", "type": "main", "index": 0 }]
+      ]
+    },
+    "Alerta SLA": {
+      "main": [
+        [{ "node": "Responder Webhook", "type": "main", "index": 0 }]
+      ]
+    }
+  }
+}

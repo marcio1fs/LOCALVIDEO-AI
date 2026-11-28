@@ -32,7 +32,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://seu-app.vercel.app/api/atendimentos",
+        "url": "https://crm-nine-eta-26.vercel.app/api/atendimentos",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"clienteNome\": \"WhatsApp \" + $json.telefone,\n  \"assunto\": $json.assunto,\n  \"canal\": \"chat\",\n  \"atendente\": \"Automatico\"\n}",

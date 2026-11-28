@@ -146,7 +146,7 @@ Se o storage KV estiver vazio, o CRM não tem dados. Para carregar os dados de
 exemplo, chame uma vez após o deploy:
 
 ```bash
-curl -X POST https://sua-app.vercel.app/api/seed
+curl -X POST https://crm-nine-eta-26.vercel.app/api/seed
 ```
 
 ### 4. Importar os fluxos n8n
@@ -156,26 +156,28 @@ Veja a seção abaixo (ou use o script `scripts/import-n8n.mjs` com a `N8N_API_K
 Na Vercel, os webhooks do n8n são recebidos sob `/api/webhook/...`:
 
 ```
-POST https://sua-app.vercel.app/api/webhook/novo-atendimento
-POST https://sua-app.vercel.app/api/webhook/lead
-POST https://sua-app.vercel.app/api/webhook/interacao
-POST https://sua-app.vercel.app/api/webhook/follow-up
-POST https://sua-app.vercel.app/api/webhook/sla
+POST https://crm-nine-eta-26.vercel.app/api/webhook/novo-atendimento
+POST https://crm-nine-eta-26.vercel.app/api/webhook/lead
+POST https://crm-nine-eta-26.vercel.app/api/webhook/interacao
+POST https://crm-nine-eta-26.vercel.app/api/webhook/follow-up
+POST https://crm-nine-eta-26.vercel.app/api/webhook/sla
 ```
 
 Configure esses URLs nos **Webhook nodes** dos fluxos n8n importados. Como a
 instância agora é pública, a n8n Cloud pode chamar a API do CRM de volta
 (callback dos fluxos) normalmente.
 
-### 6. Substituir a URL de callback nos fluxos
-Os fluxos já vêm com uma URL de callback placeholder (`https://seu-app.vercel.app`).
-Depois do deploy, substitua pela sua URL real em cada nó **HTTP Request** que
-faz callback no CRM:
+### 6. Callbacks dos fluxos
+Os fluxos já usam o domínio real do deploy como callback
+(`https://crm-nine-eta-26.vercel.app/api/...`). Após o deploy, basta confirmar
+que os **HTTP Request nodes** que chamam o CRM apontam para essa URL — não é
+necessário trocar nada se o deploy mantiver esse domínio.
 
-- Em **Settings → Variables** da Vercel, você pode criar uma variável
-  `CRM_URL=https://sua-app.vercel.app` (opcional).
-- Ou edite diretamente os nós dos fluxos, trocando `https://seu-app.vercel.app`
-  pelo endereço final do seu deploy.
+- Em **Settings → Variables** da Vercel, defina
+  `CRM_URL=https://crm-nine-eta-26.vercel.app` para que a tela de
+  Configurações do CRM exiba as URLs de webhook/callback corretas.
+- Se em algum momento o domínio mudar, atualize `CRM_URL` no Vercel e os nós
+  **HTTP Request** dos fluxos com a nova URL.
 
 ### 7. Domínio personalizado e cache
 - **Domínio personalizado**: em **Project Settings → Domains**, adicione seu

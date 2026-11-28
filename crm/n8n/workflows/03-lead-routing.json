@@ -80,7 +80,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://seu-app.vercel.app/api/clientes",
+        "url": "https://crm-nine-eta-26.vercel.app/api/clientes",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"nome\": $json.nome,\n  \"email\": $json.email,\n  \"telefone\": $json.telefone,\n  \"empresa\": $json.empresa,\n  \"tags\": $json.tags,\n  \"status\": $json.status,\n  \"valor\": $json.valor,\n  \"pontos\": $json.pontos\n}",

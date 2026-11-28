@@ -25,7 +25,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "https://seu-app.vercel.app/api/atendimentos?status=aberto",
+        "url": "https://crm-nine-eta-26.vercel.app/api/atendimentos?status=aberto",
         "options": {}
       },
       "id": "5d975610-1f93-4a30-8997-430f798059e7",
